@@ -1,14 +1,14 @@
-# GeoBoundary Review Lab
+# Geospatial Boundary Resolution: Case Study
 
-> An interactive, privacy-safe demo for turning ambiguous corporate location
-> records into reviewable candidate geofence boundaries.
+> A non-confidential overview of a proprietary workflow for turning ambiguous
+> corporate location records into reviewable facility boundaries.
 
-**This is an independent portfolio project.** All cases, names, addresses,
-polygons, and review decisions in this repository are synthetic. The project
-contains no employer source code, production data, credentials, proprietary
-integrations, or map-provider API keys.
+**Source code and operational data are not published.** This repository is a
+technical case study for portfolio and interview discussion. It contains no
+employer source code, production data, credentials, internal screenshots,
+proprietary integrations, decision rules, or map-provider API keys.
 
-## Why this problem matters
+## Project context
 
 Satellite and geospatial workflows often need a precise area of interest for a
 company facility: not just a city, a pin, or a campus, but a reviewable boundary
@@ -16,22 +16,34 @@ for the relevant building or site. A company may occupy only one or a few
 buildings within a much larger industrial park or office campus, so the campus
 outline alone is often too broad for downstream satellite analysis.
 
-The source record is frequently a company address disclosed in a public filing.
-That address may be legally precise while looking very different from the names,
-points of interest, or formatted addresses returned by map search. A search can
-also return several plausible candidates, with the correct one not necessarily
-ranked first.
+This work addressed the gap between publicly disclosed corporate-location
+records and the building-level geometry needed by downstream geospatial analysis.
+The system was developed in a proprietary setting; this document describes the
+problem, review workflow, and engineering principles at a non-confidential
+level.
 
-Even after the correct area is found, many map data sources expose a campus or
-industrial-park outline rather than the footprint of the individual building
-associated with the company. Resolving the candidate and deciding the appropriate
-boundary therefore require both automated evidence aggregation and human review.
+## The two core challenges
 
-`GeoBoundary Review Lab` demonstrates that workflow with local, synthetic data.
-It is a portfolio demonstration of the engineering pattern, not a production
-geocoding service.
+### 1. Address and entity resolution
 
-## The workflow
+A company address disclosed in a public filing can be legally precise while
+looking very different from the names, points of interest, or formatted
+addresses returned by a map search. A query may return several plausible
+candidates, and the correct one is not necessarily the first result.
+
+The problem is therefore not simply address lookup. It is evidence-based entity
+resolution: determining which candidate place corresponds to the disclosed
+corporate location.
+
+### 2. Building-level boundary resolution
+
+Even after identifying the correct general area, map data may expose only a
+campus or industrial-park outline rather than the individual building occupied
+by the company. The relevant boundary must be evaluated at the appropriate
+facility or building level rather than inferred from a center point or a broad
+site polygon.
+
+## High-level workflow
 
 ```text
 Corporate location record
@@ -49,27 +61,27 @@ Rank and explain candidate boundaries
 Validate geometry and show boundary variants
         |
         v
-Reviewer approves, rejects, or requests follow-up
+Reviewer approves, corrects, or requests follow-up
         |
         v
-Export a boundary and an audit-friendly review record
+Produce a reviewable boundary and an audit-friendly record
 ```
 
 The key design principle is simple: **a center point is not a boundary, and an
-uncertain candidate is not an automatically completed result.** The interface
-makes uncertainty visible and sends it to a reviewer rather than hiding it.
+uncertain candidate is not an automatically completed result.** Uncertainty is
+made explicit and escalated to a reviewer rather than hidden.
 
-## What the demo shows
+## Review workflow
 
-The static demo is organized as a three-panel review workspace:
+The workflow separates broad automated investigation from focused human review:
 
-| Workspace | Reviewer question | Demonstrated capability |
+| Review stage | Reviewer question | Purpose |
 | --- | --- | --- |
-| **Case queue** | What needs attention and what is its status? | Batch progress, case selection, and review state |
-| **Boundary workspace** | Is this candidate geometry plausible? | Candidate overlays, editable points, boundary variants, and geometry checks |
-| **Review panel** | What evidence supports a decision? | Candidate explanations, confidence signals, reviewer decisions, and notes |
+| **Selected result** | Does the selected location correspond to the source record? | Verify the proposed boundary and supporting evidence efficiently |
+| **Escalated comparison** | If not, which alternative best corresponds? | Inspect additional candidates only when the initial result is inconsistent or incomplete |
+| **Decision record** | What was approved, corrected, or left unresolved? | Preserve the basis and outcome of the review |
 
-It demonstrates the following transferable engineering ideas:
+The workflow embodies the following transferable engineering ideas:
 
 - **Address and entity resolution:** compare a disclosed location description
   against several differently named candidate places.
@@ -81,37 +93,28 @@ It demonstrates the following transferable engineering ideas:
   simplified variants before exporting a polygon.
 - **Human-in-the-loop quality control:** record approval, rejection, uncertainty,
   or missing evidence together with a reviewer note.
-- **Traceable outputs:** export synthetic GeoJSON and a review record that can be
-  inspected later.
+- **Traceable outputs:** retain a review record that can be inspected later.
 
-## A synthetic example
+## Efficient human-in-the-loop review
 
-The demo includes fabricated examples where a filing-style location description
-and a map-style candidate label are intentionally different:
-
-```text
-Source record:  Harbor District, 18 Meridian Avenue, Tower B, Suite 1207
-Candidate A:    Meridian International Center - Building B
-Candidate B:    Harbor Logistics Park Visitor Center
-Candidate C:    Meridian Avenue Office Plaza
-```
-
-The system selects the best-supported candidate first and presents its proposed
-polygon with the evidence used to support the selection. In the normal review
-path, the reviewer checks only this selected result against the source record:
-if the location and evidence correspond, the reviewer can approve it directly.
+The system first selects the best-supported candidate and presents its proposed
+boundary with the evidence used to support that selection. In the normal review
+path, a reviewer verifies only this selected result against the source record.
+If the location and evidence correspond, the reviewer can approve it directly.
 
 Only when the selected result does not correspond, or its evidence is
-insufficient, does the reviewer expand the candidate list, compare the
-alternatives, and record a correction or an unresolved review outcome. This
-exception-based workflow lets the system perform the broad candidate collection
-and comparison work up front while reserving deeper manual investigation for
-ambiguous cases. No real organization, address, or facility is represented by
-this example.
+insufficient, does the reviewer expand the candidate set and compare additional
+alternatives. The reviewer then records a correction or an unresolved outcome.
+
+This exception-based design allows automated processing to collect and compare a
+larger body of candidate evidence up front while reserving deeper manual
+investigation for ambiguous cases. It avoids the inefficient alternative of
+requiring a reviewer to repeatedly search and read every possible candidate.
 
 ## Boundary variants
 
-Each synthetic case can expose several representations of the same candidate:
+The production workflow distinguishes several representations of the same
+candidate boundary:
 
 - **Original:** the full candidate polygon used for review.
 - **Simplified:** a lower-vertex representation intended for efficient display
@@ -119,7 +122,7 @@ Each synthetic case can expose several representations of the same candidate:
 - **Fixed-vertex:** a normalized representation for systems that require a
   consistent vertex budget.
 
-The demo keeps these representations distinct. A simplified polygon is a
+The workflow keeps these representations distinct. A simplified polygon is a
 derived view, not a silent replacement for the original reviewed geometry.
 
 ## Review states
@@ -128,94 +131,49 @@ Each check can be saved with one of four explicit states:
 
 | State | Meaning |
 | --- | --- |
-| `Approved` | The evidence and boundary are sufficient for this demo case. |
+| `Approved` | The evidence and boundary are sufficient for the reviewed record. |
 | `Rejected` | The selected candidate or boundary is inconsistent with the evidence. |
 | `Needs review` | More evidence or a human correction is needed. |
 | `Not available` | The input does not provide enough information for this check. |
 
 This structure helps distinguish a negative conclusion from an unresolved case.
 
-## Quick start
+## My contributions
 
-The first version has no backend, database, external map service, or API key.
+Within a proprietary project setting, my work focused on the following
+generalizable engineering areas:
 
-```bash
-git clone https://github.com/liangyushua/geofence-demo.git
-cd geofence-demo
-python -m http.server 8000
-```
+- Designing an address-to-boundary review workflow for ambiguous corporate
+  facility locations.
+- Improving the presentation of candidate evidence so reviewers can validate a
+  selected result efficiently before escalating to a broader comparison.
+- Supporting building-level boundary review, correction, and version-aware
+  geometry handling.
+- Building quality-control interactions that record a reviewer decision and its
+  rationale for later inspection.
 
-Then open [http://localhost:8000](http://localhost:8000) in a browser.
-
-## Planned interaction model
-
-1. Select a synthetic location case from the left-side queue.
-2. Inspect the system-selected boundary, its supporting evidence, and its
-   geometry checks.
-3. Approve the result directly when it corresponds to the source record.
-4. If it does not correspond, expand the candidate list and compare alternatives
-   before recording a correction or an unresolved review outcome.
-5. Add an optional reviewer note and save the decision.
-6. Export the synthetic boundary as GeoJSON together with its review record.
-
-## Project structure
-
-```text
-geofence-demo/
-├── index.html                 # Three-panel review workspace
-├── styles.css                 # Independent visual design
-├── app.js                     # Local interaction and export behavior
-├── data/
-│   └── demo-cases.js          # Synthetic cases and GeoJSON-like polygons
-├── assets/
-│   └── screenshot.png         # Demo screenshot (added after implementation)
-└── README.md
-```
-
-## Technical approach
-
-The demo is intentionally lightweight:
-
-- Vanilla HTML, CSS, and JavaScript
-- SVG or Canvas-based synthetic map plane (no third-party map tiles)
-- Local GeoJSON-like polygon data
-- Browser-only state for review decisions
-- Downloadable JSON and GeoJSON exports
-- No network calls after the page loads
-
-Keeping the demo static makes the behavior easy to inspect, deploy with GitHub
-Pages, and run without credentials.
+Specific source code, model prompts, scoring methods, data schemas, service
+configuration, and deployment architecture are intentionally omitted.
 
 ## Scope and limitations
 
-- This repository does **not** geocode real addresses or identify real companies.
-- Candidate rankings and confidence signals are illustrative, not a trained or
-  validated production model.
-- The synthetic plane is not a real map and does not represent an actual location.
-- Geometry checks support a review workflow; they do not establish legal property
-  boundaries or regulatory compliance.
-- A reviewer remains responsible for decisions whenever evidence is ambiguous.
+- This case study does **not** publish source code or provide a runnable copy of
+  the proprietary system.
+- It intentionally omits real companies, addresses, candidate results, geometry,
+  screenshots, historical records, and performance or cost figures.
+- It does not disclose external-service integrations, retrieval strategies,
+  model prompts, ranking formulas, internal data schemas, or deployment details.
+- Geometry review supports an operational workflow; it does not establish legal
+  property boundaries or regulatory compliance.
+- Human review remains necessary whenever evidence is ambiguous.
 
-## Data and privacy
+## Confidentiality statement
 
-- All data included in this repository is synthetic and manually authored for
-  demonstration purposes.
-- The demo contains no real employer records, customer records, employee data,
-  filing extracts, screenshots, server configuration, or historical outputs.
-- The demo does not call external geocoding, map, large-language-model, or
-  satellite-data services.
-- Do not add credentials, production exports, or personally identifiable
-  information to this repository.
-
-## Future extensions
-
-Possible extensions for a separate, public-data-only version include:
-
-- a pluggable adapter for an openly licensed geocoding data source;
-- reproducible candidate-ranking experiments on a documented public benchmark;
-- more geometry validation rules and unit tests;
-- keyboard-accessible polygon editing; and
-- a GitHub Pages deployment with a short walkthrough GIF.
+This repository is deliberately limited to a high-level description of my
+professional experience. It contains no employer-owned source code, trade
+secrets, credentials, production data, customer information, employee data,
+internal documentation, or copied user-interface assets. The implementation is
+not available because it was developed in a proprietary environment.
 
 ## Portfolio context
 
