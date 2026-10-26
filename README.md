@@ -35,6 +35,29 @@ The problem is therefore not simply address lookup. It is evidence-based entity
 resolution: determining which candidate place corresponds to the disclosed
 corporate location.
 
+#### Illustrative synthetic example
+
+The following fictional record illustrates why an exact-looking disclosed
+address may not match a map result word for word:
+
+| Source | Location description |
+| --- | --- |
+| Public filing | `Suite 1207, Tower B, 18 Meridian Avenue, Harbor Free Trade District` |
+| Candidate 1 | `Meridian International Center - Building B` |
+| Candidate 2 | `Harbor Logistics Park Visitor Center` |
+| Candidate 3 | `Meridian Avenue Office Plaza` |
+
+The filing-style address describes an administrative district, a street address,
+a tower, and a suite. A map may instead index the same physical building under a
+commercial building name. It may also return nearby but incorrect places such as
+a visitor center, a campus entrance, a similarly named office building, or a
+business located elsewhere on the same street.
+
+The system must therefore evaluate more than text similarity. It uses the
+relationship among address fragments, candidate names, location context, and
+nearby-place evidence to select a result that a reviewer can quickly verify.
+All names and addresses in this example are fictional.
+
 ### 2. Building-level boundary resolution
 
 Even after identifying the correct general area, map data may expose only a
@@ -42,6 +65,25 @@ campus or industrial-park outline rather than the individual building occupied
 by the company. The relevant boundary must be evaluated at the appropriate
 facility or building level rather than inferred from a center point or a broad
 site polygon.
+
+#### Illustrative synthetic example
+
+Consider a fictional map result named `Meridian Technology Park`. Its site
+outline contains Buildings A through E, shared access roads, parking areas, and
+multiple tenants. The target company is associated with Buildings C and D only.
+
+Using the entire park polygon would include areas unrelated to the company. A
+single point is not sufficient either: it might fall on a park entrance, a
+shared road, or a parking area rather than on the relevant building. Even a
+company point of interest does not necessarily come with a usable building
+outline.
+
+The goal is therefore a reviewable candidate boundary for the building or
+buildings associated with the facility. It is not a claim about office-floor
+occupancy, legal property ownership, or a regulatory parcel boundary. The
+review process keeps the original candidate geometry separate from derived
+versions and records the evidence behind a reviewer decision. This example is
+entirely fictional.
 
 ## High-level workflow
 
